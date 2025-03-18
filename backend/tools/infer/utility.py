@@ -189,8 +189,8 @@ def create_predictor(args, mode, logger):
         else:
             precision = inference.PrecisionType.Float32
 
-        if False:
-            #gpu_id = get_infer_gpuid()
+        if args.use_gpu:
+            gpu_id = get_infer_gpuid()
             if gpu_id is None:
                 logger.warning(
                     "GPU is not found in current device by nvidia-smi. Please check your device or ignore it if run on jetson."
@@ -335,21 +335,21 @@ def get_output_tensors(args, mode, predictor):
     return output_tensors
 
 
-# def get_infer_gpuid():
-#     sysstr = platform.system()
-#     if sysstr == "Windows":
-#         return 0
+def get_infer_gpuid():
+    sysstr = platform.system()
+    if sysstr == "Windows":
+        return 0
 
-#     if not paddle.fluid.core.is_compiled_with_rocm():
-#         cmd = "env | grep CUDA_VISIBLE_DEVICES"
-#     else:
-#         cmd = "env | grep HIP_VISIBLE_DEVICES"
-#     env_cuda = os.popen(cmd).readlines()
-#     if len(env_cuda) == 0:
-#         return 0
-#     else:
-#         gpu_id = env_cuda[0].strip().split("=")[1]
-#         return int(gpu_id[0])
+    #if not paddle.fluid.core.is_compiled_with_rocm():
+    #cmd = "env | grep CUDA_VISIBLE_DEVICES"
+    #else:
+    cmd = "env | grep HIP_VISIBLE_DEVICES"
+    env_cuda = os.popen(cmd).readlines()
+    if len(env_cuda) == 0:
+        return 0
+    else:
+        gpu_id = env_cuda[0].strip().split("=")[1]
+        return int(gpu_id[0])
 
 
 def draw_e2e_res(dt_boxes, strs, img_path):

@@ -135,6 +135,7 @@ class STTNInpaint:
         # 获取重绘区域
         # 在设定的邻居帧步幅内循环处理视频
         for f in range(0, frame_length, self.neighbor_stride):
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "inpaint comps:", f + 1, '/', frame_length)
             # 计算邻近帧的ID
             neighbor_ids = [i for i in range(max(0, f - self.neighbor_stride), min(frame_length, f + self.neighbor_stride + 1))]
             # 获取参考帧的索引
@@ -143,14 +144,17 @@ class STTNInpaint:
             with torch.no_grad():
                 # 通过模型推断特征并传递给解码器以生成完成的帧
                 pred_feat = self.model.infer(feats[0, neighbor_ids + ref_ids, :, :, :])
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "inpaint infer:", f + 1, '/', frame_length)
                 # 将预测的特征通过解码器生成图片，并应用激活函数tanh，然后分离出张量
                 pred_img = torch.tanh(self.model.decoder(pred_feat[:len(neighbor_ids), :, :, :])).detach()
                 # 将结果张量重新缩放到0到255的范围内（图像像素值）
                 pred_img = (pred_img + 1) / 2
                 # 将张量移动回CPU并转为NumPy数组
                 pred_img = pred_img.cpu().permute(0, 2, 3, 1).numpy() * 255
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "inpaint tanh:", f + 1, '/', frame_length)
                 # 遍历邻近帧
                 for i in range(len(neighbor_ids)):
+                    #print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "inpainted frame:", f + i + 1, '/', frame_length)
                     idx = neighbor_ids[i]
                     # 将预测的图片转换为无符号8位整数格式
                     img = np.array(pred_img[i]).astype(np.uint8)
@@ -276,7 +280,7 @@ class STTNVideoInpaint:
         for i in range(rec_time):
             start_f = i * self.clip_gap  # 起始帧位置
             end_f = min((i + 1) * self.clip_gap, frame_info['len'])  # 结束帧位置
-            print('Processing:', start_f + 1, '-', end_f, ' / Total:', frame_info['len'])
+            print(time.time(), 'Processing:', start_f + 1, '-', end_f, ' / Total:', frame_info['len'])
             frames_hr = []  # 高分辨率帧列表
             frames = {}  # 帧字典，用于存储裁剪后的图像
             comps = {}  # 组合字典，用于存储修复后的图像
@@ -294,6 +298,7 @@ class STTNVideoInpaint:
                     frames[k].append(image_resize)
             # 对每个修复区域运行修复
             for k in range(len(inpaint_area)):
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "inpaint comps:", i + 1, '/', rec_time )
                 comps[k] = self.sttn_inpaint.inpaint(frames[k])
             # 如果有要修复的区域
             if inpaint_area is not []:
